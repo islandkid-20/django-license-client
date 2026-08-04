@@ -5,8 +5,9 @@ the same way the licence server does — same claim names, same HS256 signature 
 key derived from the instance secret — rather than stubbing ``verify`` out. A fixture
 that faked verification would let a real signature regression pass silently.
 
-Keep the claim shape here in step with docs/token-contract.md and with
-apps/licensing/tokens.py on the server.
+Keep the claim shape here in step with the licence server's token contract, which
+is published at /api/schema/ on any running licence server. The contract document
+itself lives in the server repository, which is not public.
 """
 
 import json
