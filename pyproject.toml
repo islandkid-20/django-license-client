@@ -1,0 +1,87 @@
+[project]
+name = "django-license-client"
+version = "1.0.0"
+description = "Subscription enforcement for Django applications deployed on customer-controlled servers"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "LicenseRef-Proprietary"
+license-files = ["LICENSE"]
+authors = [{ name = "James Mashaka James", email = "j1997ames@gmail.com" }]
+maintainers = [{ name = "James Mashaka James", email = "j1997ames@gmail.com" }]
+keywords = [
+    "django",
+    "licensing",
+    "subscription",
+    "self-hosted",
+    "on-premise",
+    "billing",
+]
+
+# Every version below is exercised by the test suite before a release; see the
+# compatibility table in README.md.
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Web Environment",
+    "Framework :: Django",
+    "Framework :: Django :: 4.2",
+    "Framework :: Django :: 5.2",
+    "Framework :: Django :: 6.0",
+    "Intended Audience :: Developers",
+    # No "License ::" classifier: PEP 639 supersedes them, and setuptools rejects a
+    # build that declares both a license expression and a license classifier.
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Office/Business :: Financial",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+dependencies = [
+    "Django>=4.2",
+    "PyJWT>=2.8",
+    "requests>=2.31",
+]
+
+[project.urls]
+Homepage = "https://github.com/islandkid-20/django-license-client"
+Source = "https://github.com/islandkid-20/django-license-client"
+Issues = "https://github.com/islandkid-20/django-license-client/issues"
+Changelog = "https://github.com/islandkid-20/django-license-client/blob/main/CHANGELOG.md"
+
+[project.optional-dependencies]
+# license_client.tasks imports celery, and the onboarding runbook asks every product
+# to register the refresh task on its beat schedule. Declared as an extra so the
+# requirement is at least visible; see the note in tasks.py.
+celery = ["celery>=5.3"]
+
+# Never installed on a customer machine. Pins match license-server/requirements.txt
+# and both .pre-commit-config.yaml files.
+dev = [
+    "celery>=5.3",
+    "autoflake==2.3.3",
+    "black==26.5.1",
+    "isort==7.0.0",
+    "pre-commit==3.6.0",
+    "ruff==0.16.1",
+    "build>=1.2",
+    "pytest>=8.0",
+    "pytest-django>=4.8",
+]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "tests.settings"
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = "-q --strict-markers"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["license_client*"]
+
+[tool.setuptools.package-data]
+license_client = ["templates/license_client/*.html"]

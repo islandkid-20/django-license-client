@@ -1,0 +1,30 @@
+{% extends "license_client/_base_notice.html" %}
+
+{% block title %}Changes are paused{% endblock %}
+
+{% block body %}
+  <div class="mark" aria-hidden="true">
+    <svg viewBox="0 0 24 24"><path d="M12 8v5"></path><path d="M12 16h.01"></path>
+    <circle cx="12" cy="12" r="9"></circle></svg>
+  </div>
+
+  <h1>Changes are paused</h1>
+  <p>
+    This system is in read-only mode while the subscription is settled.
+    Your records are intact and can still be viewed and exported.
+    Contact support to receive your invoice and restore full access.
+  </p>
+
+  <div class="contacts">
+    {% if support.phone %}
+      <div class="row"><span class="label">Phone</span>
+        <a href="tel:{{ support.phone }}">{{ support.phone }}</a></div>
+    {% endif %}
+    {% if support.email %}
+      <div class="row"><span class="label">Email</span>
+        <a href="mailto:{{ support.email }}">{{ support.email }}</a></div>
+    {% endif %}
+  </div>
+
+  <p class="note"><a href="javascript:history.back()" style="color:inherit;">Go back</a></p>
+{% endblock %}

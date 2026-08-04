@@ -1,0 +1,32 @@
+{% extends "license_client/_base_notice.html" %}
+
+{% block title %}Service suspended{% endblock %}
+
+{% block body %}
+  <div class="mark" aria-hidden="true">
+    <svg viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"></rect>
+    <path d="M8 11V8a4 4 0 0 1 7-2.6"></path></svg>
+  </div>
+
+  <h1>Service suspended</h1>
+  <p>
+    {% if expired_on %}Your subscription expired on {{ expired_on|date:"j F Y" }}.<br>{% endif %}
+    Contact support to receive your invoice and restore access.
+    {% if license.message %}<br>{{ license.message }}{% endif %}
+  </p>
+
+  <div class="contacts">
+    {% if support.phone %}
+      <div class="row"><span class="label">Phone</span>
+        <a href="tel:{{ support.phone }}">{{ support.phone }}</a></div>
+    {% endif %}
+    {% if support.email %}
+      <div class="row"><span class="label">Email</span>
+        <a href="mailto:{{ support.email }}">{{ support.email }}</a></div>
+    {% endif %}
+    {% if support.whatsapp %}
+      <div class="row"><span class="label">WhatsApp</span>
+        <a href="https://wa.me/{{ support.whatsapp|cut:'+' }}">{{ support.whatsapp }}</a></div>
+    {% endif %}
+  </div>
+{% endblock %}

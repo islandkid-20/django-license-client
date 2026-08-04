@@ -1,0 +1,20 @@
+# Kept deliberately in step with license-server/ruff.toml. signing.py is duplicated
+# byte-for-byte across the two repos and must stay that way — a formatter that
+# disagrees between them would break that guarantee silently.
+line-length = 88
+target-version = "py311"
+
+exclude = [
+    "venv",
+    ".venv",
+    "env",
+    "build",
+    "dist",
+]
+
+[lint.per-file-ignores]
+# Declarative Django class bodies are framework config, not mutable state.
+"**/models.py" = ["RUF012"]
+"**/admin.py" = ["RUF012"]
+# Tests reach into module internals (_resolve_uncached) on purpose.
+"tests/*.py" = ["SLF001"]
