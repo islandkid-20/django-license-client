@@ -59,7 +59,7 @@ def license_token_factory(settings, license_cache_dir):
         issued_at=None,
         audience=None,
         status="active",
-        product="elga",
+        product="pos",
         features=None,
         seats=None,
         message="",
