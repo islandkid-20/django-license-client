@@ -13,8 +13,12 @@ exclude = [
 ]
 
 [lint.per-file-ignores]
-# Declarative Django class bodies are framework config, not mutable state.
+# Declarative Django and DRF class bodies -- Meta.fields, permission_classes,
+# list_display -- are framework config, not mutable state. Annotating them with
+# ClassVar is noise. Matches the same rule in the licence server's ruff.toml.
 "**/models.py" = ["RUF012"]
 "**/admin.py" = ["RUF012"]
+"**/views.py" = ["RUF012"]
+"**/urls.py" = ["RUF012"]
 # Tests reach into module internals (_resolve_uncached) on purpose.
 "tests/*.py" = ["SLF001"]

@@ -14,6 +14,7 @@ INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.auth",
     "license_client",
+    "rest_framework",
 ]
 
 MIDDLEWARE = [

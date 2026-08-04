@@ -24,9 +24,16 @@ Access is withdrawn in stages rather than all at once:
 | Window | Behaviour |
 | --- | --- |
 | Paid period | Full access |
-| Grace, 7 days by default | Full access, warning banner |
+| Grace, 7 days by default | Full access |
 | Read-only, 7 days by default | Reads and exports allowed, writes blocked |
 | After that | Suspension notice with your support contacts |
+
+Nothing is injected into your application's interface at any point. This package
+renders exactly two screens, and only when a request is actually refused: a
+"changes are paused" notice for a write during read-only, and a suspension notice
+after that. A billing warning inside the product would be seen by every cashier and
+driver who cannot act on it; the people who can are reached out of band, by whatever
+reminders your licence server sends.
 
 Two independent limits apply and the stricter always wins: the billing dates carried
 inside the token, and the token's own 72-hour expiry. The second is what makes
@@ -66,6 +73,13 @@ pip install "django-license-client[celery]"
 Without Celery you can still drive the refresh from cron, calling the management
 command directly.
 
+Django REST Framework products need no extra to get JSON refusals; that is automatic.
+The extra is only for the optional permission classes:
+
+```console
+pip install "django-license-client[drf]"
+```
+
 ## Configuration
 
 ### 1. Environment
@@ -89,10 +103,6 @@ INSTALLED_APPS += ["license_client"]
 
 MIDDLEWARE += ["license_client.middleware.LicenseEnforcementMiddleware"]
 
-TEMPLATES[0]["OPTIONS"]["context_processors"] += [
-    "license_client.context_processors.license_state",
-]
-
 LICENSE_SERVER_URL = env("LICENSE_SERVER_URL")
 LICENSE_INSTANCE_ID = env("LICENSE_INSTANCE_ID")
 LICENSE_INSTANCE_SECRET = env("LICENSE_INSTANCE_SECRET")
@@ -107,17 +117,7 @@ to log in and read the suspension notice, rather than meeting an anonymous wall.
 
 A misconfigured install fails `manage.py check` rather than starting up unlicensed.
 
-### 3. Banner
-
-Include once in your base template, inside `<body>`:
-
-```django
-{% include "license_client/banner.html" %}
-```
-
-It renders nothing while the subscription is healthy.
-
-### 4. Scheduled refresh
+### 3. Scheduled refresh
 
 With Celery:
 
@@ -138,7 +138,7 @@ Hourly is the recommended cadence. A token is valid for 72 hours, so an instance
 survives roughly three days of failed refreshes — long enough to cover a weekend
 outage, short enough that blocking the licence server is not a workaround.
 
-### 5. Persist the cache directory
+### 4. Persist the cache directory
 
 The token must outlive container rebuilds, or every deployment starts suspended:
 
@@ -174,6 +174,7 @@ over.
 | `LICENSE_CACHE_DIR` | no | `/var/lib/license` | Where the token and rollback state are stored |
 | `LICENSE_EXEMPT_PATHS` | no | `()` | Extra path prefixes that bypass enforcement |
 | `LICENSE_EXEMPT_URL_NAMES` | no | `()` | URL names that bypass enforcement |
+| `LICENSE_API_PATHS` | no | `()` | Path prefixes that always answer JSON, regardless of `Accept` |
 
 `/__license__/`, `/static/`, `/media/`, `/healthz` and `/favicon.ico` are always exempt.
 
@@ -201,9 +202,82 @@ omit is the route that lets a customer export their own records: a suspended cus
 who cannot retrieve their data is a support problem and, depending on your agreement,
 a legal one.
 
+## Django REST Framework
+
+Refusals follow content negotiation, so an API client gets JSON rather than a web page:
+
+```http
+POST /api/orders/          402 Payment Required
+Accept: application/json   Content-Type: application/json
+```
+
+```json
+{
+  "message": "This system is in read-only mode while the subscription is settled. Your records are intact and can still be viewed and exported.",
+  "code": "license_read_only",
+  "level": "read_only",
+  "period_end": "2026-07-15T23:59:59+03:00",
+  "support": {"phone": "+255 700 000 000", "email": "billing@example.com"}
+}
+```
+
+JSON is returned when the request asks for it via `Accept`, sends a JSON body, or its
+path is listed in `LICENSE_API_PATHS`. A browser sending
+`text/html,...,*/*;q=0.8` still gets the notice page, so DRF's browsable API keeps
+working. Set `LICENSE_API_PATHS = ["/api/"]` if your clients send no usable `Accept`
+header.
+
+`code` is stable and safe to branch on: `license_read_only`, `license_suspended`,
+`license_feature_unavailable`.
+
+### Exempting DRF views
+
+`as_view()` carries none of a class's attributes, so mark the class itself:
+
+```python
+from license_client.decorators import license_exempt
+
+@license_exempt
+class ExportAPIView(APIView):
+    ...
+```
+
+With `@api_view`, `license_exempt` must be **outermost**. `api_view` builds a fresh
+view class and drops attributes from the function underneath it, so a marker in the
+wrong position is silently lost:
+
+```python
+@license_exempt        # outermost, or the exemption disappears
+@api_view(["GET"])
+def healthcheck(request):
+    ...
+```
+
+`LICENSE_EXEMPT_URL_NAMES` sidesteps the ordering question entirely and is the safer
+choice across a DRF codebase.
+
+### Permission classes
+
+Optional, and needing `pip install "django-license-client[drf]"`. The middleware
+already covers every request, so these matter in two cases: a route that is exempt
+from the middleware but should still be licensed, and gating a plan feature.
+
+```python
+from license_client.drf import HasLicenseFeature, IsLicensed
+
+class OrderViewSet(ModelViewSet):
+    permission_classes = [IsLicensed]
+
+class ReportViewSet(ModelViewSet):
+    permission_classes = [IsLicensed, HasLicenseFeature("advanced_reports")]
+```
+
+Both raise 402 with the same body the middleware produces, so a caller sees one shape
+whichever layer refused it. No custom `EXCEPTION_HANDLER` is required.
+
 ## Feature flags
 
-Plans can carry feature flags, delivered in the token:
+For a plain Django view, plans carry feature flags in the token:
 
 ```python
 from license_client.decorators import requires_feature
@@ -213,7 +287,35 @@ def reports(request):
     ...
 ```
 
-Returns 402 when the customer's plan does not include the feature.
+Returns 402 when the customer's plan does not include the feature. On DRF, prefer
+`HasLicenseFeature` above.
+
+## Showing your own notice
+
+This package deliberately adds nothing to your interface, but the state is available
+if you want to surface something yourself. The middleware attaches it to every request
+that is not blocked:
+
+```django
+{% if request.license_state.is_degraded %}
+  <p>Subscription payment overdue.</p>
+{% endif %}
+```
+
+`is_degraded` is true during grace and read-only: past the paid period, still usable.
+`request.license_state` also carries `level`, `reason` and `support`.
+
+If you would rather not depend on `django.template.context_processors.request`, install
+the bundled processor instead and read `license_state` directly:
+
+```python
+TEMPLATES[0]["OPTIONS"]["context_processors"] += [
+    "license_client.context_processors.license_state",
+]
+```
+
+Think carefully about the audience before adding one. A billing notice in the
+application is shown to everyone who uses it, most of whom cannot pay the invoice.
 
 ## Monitoring
 

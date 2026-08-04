@@ -56,10 +56,15 @@ Changelog = "https://github.com/islandkid-20/django-license-client/blob/main/CHA
 # requirement is at least visible; see the note in tasks.py.
 celery = ["celery>=5.3"]
 
+# Only needed to import license_client.drf. The middleware works without DRF, and
+# nothing in the package imports it unless a product asks for it.
+drf = ["djangorestframework>=3.14"]
+
 # Never installed on a customer machine. Pins match license-server/requirements.txt
 # and both .pre-commit-config.yaml files.
 dev = [
     "celery>=5.3",
+    "djangorestframework>=3.14",
     "autoflake==2.3.3",
     "black==26.5.1",
     "isort==7.0.0",

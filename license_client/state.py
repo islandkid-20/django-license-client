@@ -45,7 +45,16 @@ class AccessState:
         return self.level in (READ_ONLY, SUSPENDED)
 
     @property
-    def shows_banner(self) -> bool:
+    def is_degraded(self) -> bool:
+        """Past the paid period, but the product is still usable.
+
+        This package renders nothing of its own in these states: injecting a notice
+        into a customer's interface shows a billing problem to every cashier and
+        driver who cannot act on it, while the people who can are reached by the
+        licence server's SMS and email reminders instead.
+
+        Exposed so a product can surface its own notice if it wants one.
+        """
         return self.level in (GRACE, READ_ONLY)
 
     @property

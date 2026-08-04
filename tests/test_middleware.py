@@ -105,22 +105,27 @@ def test_a_token_for_another_domain_does_not_unlock_this_one(
     assert client.get("/thing/", headers=HOST).status_code == 402
 
 
-# -- banner --------------------------------------------------------------------
+# -- nothing is injected into the product ---------------------------------------
 
 
-def test_banner_is_silent_while_healthy(client, license_token_factory):
-    license_token_factory(period_end=expired(-1))
-    # Asserting on markup, not exact bytes: the template's {% if %} leaves whitespace
-    # behind either way, and that is not what "renders nothing" means here.
-    assert b"<div" not in client.get("/banner/", headers=HOST).content
-
-
-@pytest.mark.parametrize(
-    "days_past_end,expected",
-    [(GRACE, b"overdue"), (READ_ONLY, b"Read-only")],
-)
-def test_banner_warns_once_the_period_has_lapsed(
-    client, license_token_factory, days_past_end, expected
+@pytest.mark.parametrize("days_past_end", [-1, GRACE, READ_ONLY])
+def test_no_markup_is_injected_into_a_page_the_product_renders(
+    client, license_token_factory, days_past_end
 ):
+    """This package adds nothing to a customer's interface, in any usable state.
+
+    A billing notice inside the application is seen by every cashier and driver who
+    cannot act on it. The people who can are reached by the licence server's SMS and
+    email reminders. The only screens this package renders are the full-page notices,
+    and only when a request is actually refused.
+    """
     license_token_factory(period_end=expired(days_past_end))
-    assert expected in client.get("/banner/", headers=HOST).content
+    body = client.get("/page/", headers=HOST).content
+    assert b"<div" not in body
+    assert b"licen" not in body.lower()
+
+
+def test_degraded_state_is_still_readable_by_the_product(client, license_token_factory):
+    """Removing the banner must not remove a product's ability to build its own."""
+    license_token_factory(period_end=expired(GRACE))
+    assert client.get("/page/", headers=HOST).content == b"[grace]"

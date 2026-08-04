@@ -22,6 +22,9 @@ class LicenseSettings:
     exempt_paths: tuple = field(default_factory=tuple)
     exempt_url_names: tuple = field(default_factory=tuple)
     write_methods: tuple = ("POST", "PUT", "PATCH", "DELETE")
+    # Path prefixes that always answer JSON, for API clients that send no usable
+    # Accept header. Content negotiation covers the well-behaved ones on its own.
+    api_paths: tuple = field(default_factory=tuple)
 
     @property
     def heartbeat_url(self) -> str:
@@ -63,4 +66,5 @@ def get_config() -> LicenseSettings:
         exempt_paths=DEFAULT_EXEMPT_PATHS
         + tuple(getattr(settings, "LICENSE_EXEMPT_PATHS", ())),
         exempt_url_names=tuple(getattr(settings, "LICENSE_EXEMPT_URL_NAMES", ())),
+        api_paths=tuple(getattr(settings, "LICENSE_API_PATHS", ())),
     )

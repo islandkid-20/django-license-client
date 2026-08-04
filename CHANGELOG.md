@@ -23,9 +23,18 @@ First release.
   refused.
 - `license_refresh` and `license_status` management commands.
 - `license_exempt` and `requires_feature` view decorators, plus path-prefix and
-  URL-name exemptions.
-- Suspension and read-only notice pages, and a warning banner, all self-contained so
-  they render when the rest of the application is unreachable.
+  URL-name exemptions. `license_exempt` works on function views, class-based and DRF
+  view classes, and the result of `as_view()`.
+- Django REST Framework support. Refusals follow content negotiation and return JSON
+  with a stable `code` when the caller asks for it, and the notice page otherwise, so
+  DRF's browsable API keeps working. `LICENSE_API_PATHS` forces JSON for clients that
+  send no usable `Accept` header.
+- Optional `license_client.drf` with `IsLicensed` and `HasLicenseFeature` permission
+  classes, raising 402 with the same body the middleware produces. DRF stays an
+  optional dependency; nothing imports it unless a product does.
+- Suspension and read-only notice pages, self-contained so they render when the rest
+  of the application is unreachable. These are the only screens this package renders,
+  and only when a request is refused; nothing is injected into a working interface.
 - `GET /__license__/status` for monitoring.
 - Startup configuration check, so a misconfigured install fails `manage.py check`
   rather than running unlicensed.
